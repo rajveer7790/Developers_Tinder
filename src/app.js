@@ -36,7 +36,36 @@ app.get("/user", async (req, res) => {
   }
 });
  
+app.delete("/delete", async (req, res) => {
+  const userId = req.body.userId;
+  try {
+    const user = await User.findByIdAndDelete({_id:userId});
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+    res.send("User deleted successfully");
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(400).send("Error deleting user" + error.message);
+  }
+});
 
+app.patch("/update", async (req, res) => {
+  const userId = req.body.userId;
+  const data = req.body;
+  try {
+    const user = await User.findByIdAndUpdate({_id: userId},data);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+    res.send("User updated successfully");
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(400).send("Error updating user" + error.message);
+  }
+
+  
+});
 
 ConnectDB()
   .then(() => {
@@ -48,3 +77,5 @@ ConnectDB()
   .catch((err) => {
     console.error("MongoDB connection failed:", err);
   });
+
+
