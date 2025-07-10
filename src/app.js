@@ -1,39 +1,41 @@
-// This is a simple Express server setup
-// It listens on port 3000 and logs a message when the server starts    
+   
 const express = require("express");
+const ConnectDB = require("./config/database.js"); 
 const app = express();
-// app.use((req,res) => {
-//   res.send("Hello, World!");
-// });
-
-app.get("/user", (req, res) => {
-  res.send({firstName: "John", lastName: "Doe"});
-});
-app.post("/user", (req, res) => {
-  res.send({message: "User created successfully!"});
-}); 
-
-app.use("/tasks", (req,res) => {
-  res.send("Hello, Tasks !");
-
-});
-app.get("/getUserData", (req, res) => {
-  try {
-    // Simulate an error
-    throw new Error("Simulated error");
-    res.send("user data saved successfully");  
-  } catch (error) {
-   res.send("Error occurred while saving user data");
+const User = require("./models/user.js");
+app.post("/signup",async (req, res) => {
+  const UserObj = {
+    firstName: "Rajveer",
+    lastName: "Choudhary" ,
+    email: "dasad@gmail.com",
+    password: "12345678"
   }
-  
-});
-app.use("/",(req, res) => {
-  if(err){
-  res.status(404).send("404 Not Found");
+    //creating a new user instance
+
+const user = new User(UserObj);
+try {
+    // Save the user to the database
+    await user.save()
+  res.send("User created successfully");
   }
-  
+ catch (error) {
+    console.error("Error creating user:", error);
+    res.status(400).send("Error creating user");
+  }
 });
 
-app.listen(3000, () => {
+
+
+
+
+
+ConnectDB()
+  .then(() => {
+    console.log("MongoDB connected successfully");
+    app.listen(3000, () => {
   console.log("✅ Server running at http://localhost:3000");
 });
+  })
+  .catch((err) => {
+    console.error("MongoDB connection failed:", err);
+  });
