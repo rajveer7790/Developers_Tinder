@@ -3,16 +3,17 @@ const express = require("express");
 const ConnectDB = require("./config/database.js"); 
 const app = express();
 const User = require("./models/user.js");
+app.use(express.json()); // Middleware to parse JSON bodies
 app.post("/signup",async (req, res) => {
-  const UserObj = {
-    firstName: "Rajveer",
-    lastName: "Choudhary" ,
-    email: "dasad@gmail.com",
-    password: "12345678"
-  }
+  // const UserObj = {
+  //   firstName: "Rajveer",
+  //   lastName: "Choudhary" ,
+  //   email: "dasad@gmail.com",
+  //   password: "12345678"
+  // }
     //creating a new user instance
 
-const user = new User(UserObj);
+const user = new User(req.body);
 try {
     // Save the user to the database
     await user.save()
@@ -20,13 +21,21 @@ try {
   }
  catch (error) {
     console.error("Error creating user:", error);
-    res.status(400).send("Error creating user");
+    res.status(400).send("Error creating user" + error.message);
   }
 });
 
 
-
-
+app.get("/user", async (req, res) => {
+  const userEmail = req.body.emailId;
+  try {
+    const user = await User.find({ emailId: userEmail });
+    res.send(user);
+  } catch (err) {
+    res.status(400).send("Error fetching user");
+  }
+});
+ 
 
 
 ConnectDB()
