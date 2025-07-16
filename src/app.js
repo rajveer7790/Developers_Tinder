@@ -1,117 +1,87 @@
-   
 const express = require("express");
-const ConnectDB = require("./config/database.js"); 
-const app = express();
-const bcrypt = require("bcrypt"); // Importing bcrypt for password hashing
-const{ validateSignupData } = require("./utils/validation.js"); // Importing validation function
-// Importing User model
+const ConnectDB = require("./config/database.js");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
 const User = require("./models/user.js");
- // Assuming you have a validation module
-app.use(express.json()); // Middleware to parse JSON bodies
-app.post("/signup",async (req, res) => {
+const { userAuth } = require("./middlewares/auth.js");
 
- // Validate signup data
-  // const UserObj = {
-  //   firstName: "Rajveer",
-  //   lastName: "Choudhary" ,
-  //   email: "dasad@gmail.com",
-  //   password: "12345678"
-  // }
-    //creating a new user instance
+// Express app setup
+const app = express();
+app.use(express.json()); // To parse JSON
+app.use(cookieParser()); // ✅ Make sure this is called as a function
+
+// Routes
+const authRouter = require("./routes/auth.js");
+const profileRouter = require("./routes/profile.js");
+const requestsRouter = require("./routes/requests.js");
 
 
-try {
-  validateSignupData(req);
-  const user = new User({
-    firstName,
-    lastName,
-    email,
-    password:passwordHash,
-  });
-    // Save the user to the database
-    await user.save()
+// Mount routes
+app.use("/auth", authRouter);
+app.use("/profile", profileRouter);
+app.use("/requests", requestsRouter);
 
-    const{password} = req.body;
-    const passwordHash = await bcrypt.hash(password, 10);
- console.log("passwordHash:", passwordHash);
-  res.send("User created successfully");
-  }
- catch (error) {
-    console.error("Error creating user:", error);
-    res.status(400).send("Error creating user" + error.message);
-  }
-});
-app.post("/login", async (req, res) => {
+// 🧠 Fix: /user route has incorrect field: `emailId` should be `email`
+app.get("/user", userAuth, async (req, res) => {
+  const userEmail = req.body.email; // ✅ Corrected key
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email:email});
+    const user = await User.findOne({ email: userEmail }); // ✅ findOne instead of find
     if (!user) {
       return res.status(404).send("User not found");
-    } 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if(isPasswordValid) {
-      res.send("Login successful");
-    } else {
-      res.status(401).send("Invalid password");
-    } 
-  } catch (error) {
-    console.error("Error logging in:", error);
-    res.status(400).send("Error logging in" + error.message);
+    }
+    res.send(user);
+  } catch (err) {
+    res.status(400).send("Error fetching user: " + err.message);
   }
 });
 
-app.get("/user", async (req, res) => {
-  const userEmail = req.body.emailId;
-  try {
-    const user = await User.find({ emailId: userEmail });
-    res.send(user);
-  } catch (err) {
-    res.status(400).send("Error fetching user");
-  }
-});
- 
-app.delete("/delete", async (req, res) => {
+// Delete user by ID
+app.delete("/delete", userAuth, async (req, res) => {
   const userId = req.body.userId;
   try {
-    const user = await User.findByIdAndDelete({_id:userId});
+    const user = await User.findByIdAndDelete(userId); // ✅ cleaner way
     if (!user) {
       return res.status(404).send("User not found");
     }
     res.send("User deleted successfully");
   } catch (error) {
     console.error("Error deleting user:", error);
-    res.status(400).send("Error deleting user" + error.message);
+    res.status(400).send("Error deleting user: " + error.message);
   }
 });
 
-app.patch("/update", async (req, res) => {
+// Update allowed fields
+app.patch("/update", userAuth, async (req, res) => {
   const userId = req.body.userId;
   const data = req.body;
-  const ALLOWED_UPDATES = ["firstName", "lastName", ];
+
+  const ALLOWED_UPDATES = ["firstName", "lastName"];
   const isUpdateAllowed = Object.keys(data).every((key) => ALLOWED_UPDATES.includes(key));
+
+  if (!isUpdateAllowed) {
+    return res.status(400).send("Invalid updates");
+  }
+
   try {
-    const user = await User.findByIdAndUpdate({_id: userId},data);
+    const user = await User.findByIdAndUpdate(userId, data, { new: true });
     if (!user) {
       return res.status(404).send("User not found");
     }
     res.send("User updated successfully");
   } catch (error) {
     console.error("Error updating user:", error);
-    res.status(400).send("Error updating user" + error.message);
+    res.status(400).send("Error updating user: " + error.message);
   }
-
-  
 });
 
+// Connect to DB and start server
 ConnectDB()
   .then(() => {
     console.log("MongoDB connected successfully");
     app.listen(3000, () => {
-  console.log("✅ Server running at http://localhost:3000");
-});
+      console.log("✅ Server running at http://localhost:3000");
+    });
   })
   .catch((err) => {
     console.error("MongoDB connection failed:", err);
   });
-
-
