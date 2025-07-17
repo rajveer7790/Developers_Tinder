@@ -26,7 +26,7 @@ requestsRouter.post("/request/send/:status/:toUserId", userAuth, async (req, res
             { fromUserId, toUserId },
             { fromUserId: toUserId, toUserId: fromUserId }
         ],
-        
+
     });
     if (existingConnectionRequest) {
         return res.status(400).json({
@@ -54,6 +54,38 @@ requestsRouter.post("/request/send/:status/:toUserId", userAuth, async (req, res
   }
 });
 
+requestsRouter.post("/request/review/:status/:requestId/", userAuth, async (req, res) => {
+ 
 
+
+    try {
+    const loggedInUserId = req.user;
+    const { status, requestId } = req.params;
+    const allowedStatus = ["accepted", "rejected"];
+    if( !allowedStatus.includes(status)) {
+      return res.status(400).json({ message: "Invalid status type" });
+    }
+ const connectionRequest = await ConnectionRequestModel.findOne({
+      _id: requestId,
+      toUserId: loggedInUserId._id,
+      status: "interested", // Only allow review if the status is "interested"
+    });
+           
+    if (!connectionRequest) {
+      return res.status(404).json({ message: "Connection request not found" });
+    }
+
+    connectionRequest.status = status;
+    await connectionRequest.save();
+
+    res.json({
+      message: "Connection request status updated successfully",
+      data: connectionRequest,
+    });
+  } catch (error) {
+    console.error("Error reviewing connection request:", error);
+    res.status(500).send("Internal server error");
+  }
+});
 
  module.exports = requestsRouter;

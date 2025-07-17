@@ -14,13 +14,14 @@ app.use(cookieParser()); // ✅ Make sure this is called as a function
 const authRouter = require("./routes/auth.js");
 const profileRouter = require("./routes/profile.js");
 const requestsRouter = require("./routes/requests.js");
-
+const userRouter = require("./routes/user.js");
 
 // Mount routes
 app.use("/auth", authRouter);
 app.use("/profile", profileRouter);
 app.use("/requests", requestsRouter);
-
+app.use("/user", userRouter);
+// Middleware to handle errors
 // 🧠 Fix: /user route has incorrect field: `emailId` should be `email`
 app.get("/user", userAuth, async (req, res) => {
   const userEmail = req.body.email; // ✅ Corrected key
